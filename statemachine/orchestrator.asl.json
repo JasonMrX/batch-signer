@@ -1,16 +1,41 @@
 {
-    "Comment": "A Hello World example of the Amazon States Language using Pass states",
-    "StartAt": "Hello",
+    "Comment": "A description of my state machine",
+    "StartAt": "Lambda Invoke",
     "States": {
-      "Hello": {
-        "Type": "Pass",
-        "Result": "Hello",
-        "Next": "World"
+      "Lambda Invoke": {
+        "Type": "Task",
+        "Resource": "arn:aws:states:::lambda:invoke",
+        "OutputPath": "$.Payload",
+        "Parameters": {
+          "Payload.$": "$",
+          "FunctionName": "${GetAllKeysFunctionArn}"
+        },
+        "Retry": [
+          {
+            "ErrorEquals": [
+              "Lambda.ServiceException",
+              "Lambda.AWSLambdaException",
+              "Lambda.SdkClientException"
+            ],
+            "IntervalSeconds": 2,
+            "MaxAttempts": 6,
+            "BackoffRate": 2
+          }
+        ],
+        "Next": "Map"
       },
-      "World": {
-        "Type": "Pass",
-        "Result": "World",
-        "End": true
+      "Map": {
+        "Type": "Map",
+        "End": true,
+        "Iterator": {
+          "StartAt": "Pass",
+          "States": {
+            "Pass": {
+              "Type": "Pass",
+              "End": true
+            }
+          }
+        }
       }
     }
   }

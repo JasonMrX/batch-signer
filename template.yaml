@@ -12,7 +12,7 @@ Resources:
       DefinitionUri: statemachine/orchestrator.asl.json
       DefinitionSubstitutions:
         GetAllKeysFunctionArn: !GetAtt GetAllKeysFunction.Arn
-      Policies: # Find out more about SAM policy templates: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-policy-templates.html
+      Policies:         
         - LambdaInvokePolicy:
             FunctionName: !Ref GetAllKeysFunction 
         - LambdaInvokePolicy:
@@ -27,7 +27,7 @@ Resources:
             TableName: !Ref KeysTable
 
   GetAllKeysFunction:
-    Type: AWS::Serverless::Function # More info about Function Resource: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-resource-function.html
+    Type: AWS::Serverless::Function    
     Properties:
       CodeUri: functions/get-all-keys/
       Handler: app.lambdaHandler
@@ -39,7 +39,7 @@ Resources:
             TableName: !Ref KeysTable
 
   BatchSignerFunction:
-    Type: AWS::Serverless::Function # More info about Function Resource: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-resource-function.html
+    Type: AWS::Serverless::Function     
     Properties:
       CodeUri: functions/batch-signer/
       Handler: app.lambdaHandler
@@ -52,8 +52,24 @@ Resources:
         - DynamoDBCrudPolicy:
             TableName: !Ref KeysTable
 
+  KeyGenFunction:
+    Type: AWS::Serverless::Function    
+    Properties:
+      CodeUri: functions/key-gen/
+      Handler: app.lambdaHandler
+      Runtime: nodejs14.x
+      Architectures:
+        - x86_64
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref KeysTable
+      Environment:
+        Variables:
+          KEYS_TABLE: !Ref KeysTable
+      Timeout: 60
+
   GetNextBatchFunction:
-    Type: AWS::Serverless::Function # More info about Function Resource: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-resource-function.html
+    Type: AWS::Serverless::Function    
     Properties:
       CodeUri: functions/get-next-batch/
       Handler: app.lambdaHandler
@@ -77,7 +93,7 @@ Resources:
     Type: AWS::SQS::Queue
 
   MessagesTable:
-    Type: AWS::Serverless::SimpleTable # More info about SimpleTable Resource: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-resource-simpletable.html
+    Type: AWS::Serverless::SimpleTable    
     Properties:
       PrimaryKey:
         Name: Id
