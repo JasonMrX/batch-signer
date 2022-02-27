@@ -72,6 +72,23 @@ Resources:
           KEYS_TABLE: !Ref KeysTable
       Timeout: 60
 
+  SeedDataFunction:
+    Type: AWS::Serverless::Function    
+    Properties:
+      CodeUri: functions/seed-data/
+      Handler: app.handler
+      Runtime: nodejs14.x
+      Architectures:
+        - x86_64
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref MessagesTable
+      Environment:
+        Variables:
+          MESSAGES_TABLE: !Ref MessagesTable
+      Timeout: 900
+      MemorySize: 1280
+
   GetNextBatchFunction:
     Type: AWS::Serverless::Function    
     Properties:
@@ -101,14 +118,21 @@ Resources:
     Type: AWS::SQS::Queue
 
   MessagesTable:
-    Type: AWS::Serverless::SimpleTable    
+    Type: AWS::DynamoDB::Table
     Properties:
-      PrimaryKey:
-        Name: Id
-        Type: String
+      AttributeDefinitions:
+        - AttributeName: CollectionId 
+          AttributeType: S
+        - AttributeName: Message 
+          AttributeType: S
+      KeySchema:
+        - AttributeName: CollectionId 
+          KeyType: HASH
+        - AttributeName: Message 
+          KeyType: RANGE
       ProvisionedThroughput:
-        ReadCapacityUnits: 1
-        WriteCapacityUnits: 1
+        ReadCapacityUnits: 16
+        WriteCapacityUnits: 16
 
   KeysTable:
     Type: AWS::Serverless::SimpleTable
@@ -127,5 +151,5 @@ Resources:
         Name: Id
         Type: String
       ProvisionedThroughput:
-        ReadCapacityUnits: 1
-        WriteCapacityUnits: 1
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
