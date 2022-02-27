@@ -3,9 +3,10 @@ const aws = require("aws-sdk");
 const dynamo = new aws.DynamoDB.DocumentClient()
 const keysTableName = process.env.KEYS_TABLE
 
-exports.lambdaHandler = async (event, context) => {
+exports.handler = async (event, context) => {
+    keysCount = event["keys_count"]
     promises = []
-    for (i = 0; i < 30; i++) {
+    for (i = 0; i < keysCount; i++) {
         promises.push(new Promise(resolve => {
             crypto.generateKeyPair('ec', {
                 namedCurve: 'secp256k1',
