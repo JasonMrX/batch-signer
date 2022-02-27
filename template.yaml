@@ -37,6 +37,10 @@ Resources:
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref KeysTable
+      Environment:
+        Variables:
+          KEYS_TABLE: !Ref KeysTable
+      Timeout: 60
 
   BatchSignerFunction:
     Type: AWS::Serverless::Function     
