@@ -1,0 +1,107 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  batch-signer
+
+  Sample SAM Template for batch-signer
+
+Resources:
+  OrchestratorStateMachine:
+    Type: AWS::Serverless::StateMachine     
+    Properties:
+      DefinitionUri: statemachine/orchestrator.asl.json
+      DefinitionSubstitutions:
+        GetAllKeysFunctionArn: !GetAtt GetAllKeysFunction.Arn
+      Policies: # Find out more about SAM policy templates: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-policy-templates.html
+        - LambdaInvokePolicy:
+            FunctionName: !Ref GetAllKeysFunction 
+        - LambdaInvokePolicy:
+            FunctionName: !Ref BatchSignerFunction 
+        - LambdaInvokePolicy:
+            FunctionName: !Ref GetNextBatchFunction 
+        - SQSSendMessagePolicy:
+            QueueName: !Ref GetNextBatchQueue
+        - DynamoDBCrudPolicy:
+            TableName: !Ref MessagesTable 
+        - DynamoDBCrudPolicy:
+            TableName: !Ref KeysTable
+
+  GetAllKeysFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-resource-function.html
+    Properties:
+      CodeUri: functions/get-all-keys/
+      Handler: app.lambdaHandler
+      Runtime: nodejs14.x
+      Architectures:
+        - x86_64
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref KeysTable
+
+  BatchSignerFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-resource-function.html
+    Properties:
+      CodeUri: functions/batch-signer/
+      Handler: app.lambdaHandler
+      Runtime: nodejs14.x
+      Architectures:
+        - x86_64
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref MessagesTable 
+        - DynamoDBCrudPolicy:
+            TableName: !Ref KeysTable
+
+  GetNextBatchFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-resource-function.html
+    Properties:
+      CodeUri: functions/get-next-batch/
+      Handler: app.lambdaHandler
+      Runtime: nodejs14.x
+      ReservedConcurrentExecutions: 1
+      Architectures:
+        - x86_64
+      Events:
+        SQSEvent:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt GetNextBatchQueue.Arn
+            BatchSize: 1
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref MessagesTable 
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ProgressTable
+
+  GetNextBatchQueue:
+    Type: AWS::SQS::Queue
+
+  MessagesTable:
+    Type: AWS::Serverless::SimpleTable # More info about SimpleTable Resource: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-resource-simpletable.html
+    Properties:
+      PrimaryKey:
+        Name: Id
+        Type: String
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+
+  KeysTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      PrimaryKey:
+        Name: PubKey
+        Type: String
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+
+  ProgressTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      PrimaryKey:
+        Name: Id
+        Type: String
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
