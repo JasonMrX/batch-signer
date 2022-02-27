@@ -14,7 +14,7 @@ function getRandomInt(max) {
  * @returns {Object} object - Object containing details of the stock buying transaction
  * 
  */
-exports.lambdaHandler = async (event, context) => {
+exports.handler = async (event, context) => {
     // Get the price of the stock provided as input
     stock_price = event["stock_price"]
     var date = new Date();

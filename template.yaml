@@ -30,7 +30,7 @@ Resources:
     Type: AWS::Serverless::Function    
     Properties:
       CodeUri: functions/get-all-keys/
-      Handler: app.lambdaHandler
+      Handler: app.handler
       Runtime: nodejs14.x
       Architectures:
         - x86_64
@@ -46,7 +46,7 @@ Resources:
     Type: AWS::Serverless::Function     
     Properties:
       CodeUri: functions/batch-signer/
-      Handler: app.lambdaHandler
+      Handler: app.handler
       Runtime: nodejs14.x
       Architectures:
         - x86_64
@@ -60,7 +60,7 @@ Resources:
     Type: AWS::Serverless::Function    
     Properties:
       CodeUri: functions/key-gen/
-      Handler: app.lambdaHandler
+      Handler: app.handler
       Runtime: nodejs14.x
       Architectures:
         - x86_64
