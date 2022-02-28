@@ -20,7 +20,7 @@ Resources:
         - LambdaInvokePolicy:
             FunctionName: !Ref SplitterFunction 
         - SQSSendMessagePolicy:
-            QueueName: !Ref BatchQueue
+            QueueName: !GetAtt BatchQueue.QueueName
         - DynamoDBCrudPolicy:
             TableName: !Ref MessagesTable 
         - DynamoDBCrudPolicy:
@@ -102,7 +102,7 @@ Resources:
         - DynamoDBCrudPolicy:
             TableName: !Ref MessagesTable 
         - SQSSendMessagePolicy:
-            QueueName: !Ref BatchQueue
+            QueueName: !GetAtt BatchQueue.QueueName
       Environment:
         Variables:
           MESSAGES_TABLE: !Ref MessagesTable
