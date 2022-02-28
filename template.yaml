@@ -18,9 +18,9 @@ Resources:
         - LambdaInvokePolicy:
             FunctionName: !Ref BatchSignerFunction 
         - LambdaInvokePolicy:
-            FunctionName: !Ref GetNextBatchFunction 
+            FunctionName: !Ref SplitterFunction 
         - SQSSendMessagePolicy:
-            QueueName: !Ref GetNextBatchQueue
+            QueueName: !Ref BatchQueue
         - DynamoDBCrudPolicy:
             TableName: !Ref MessagesTable 
         - DynamoDBCrudPolicy:
@@ -89,32 +89,26 @@ Resources:
       Timeout: 900
       MemorySize: 1280
 
-  GetNextBatchFunction:
+  SplitterFunction:
     Type: AWS::Serverless::Function    
     Properties:
-      CodeUri: functions/get-next-batch/
+      CodeUri: functions/splitter/
       Handler: app.handler
       Runtime: nodejs14.x
       ReservedConcurrentExecutions: 1 # important!
       Architectures:
         - x86_64
-      Events:
-        SQSEvent:
-          Type: SQS
-          Properties:
-            Queue: !GetAtt GetNextBatchQueue.Arn
-            BatchSize: 1
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref MessagesTable 
-        - DynamoDBCrudPolicy:
-            TableName: !Ref ProgressTable
+        - SQSSendMessagePolicy:
+            QueueName: !Ref BatchQueue
       Environment:
         Variables:
           MESSAGES_TABLE: !Ref MessagesTable
-          PROGRESS_TABLE: !Ref ProgressTable
+          BATCH_QUEUE: !Ref BatchQueue
 
-  GetNextBatchQueue:
+  BatchQueue:
     Type: AWS::SQS::Queue
 
   MessagesTable:
