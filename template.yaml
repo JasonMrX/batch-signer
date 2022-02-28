@@ -117,12 +117,12 @@ Resources:
       AttributeDefinitions:
         - AttributeName: CollectionId 
           AttributeType: S
-        - AttributeName: Message 
+        - AttributeName: MessageId
           AttributeType: S
       KeySchema:
         - AttributeName: CollectionId 
           KeyType: HASH
-        - AttributeName: Message 
+        - AttributeName: MessageId
           KeyType: RANGE
       ProvisionedThroughput:
         ReadCapacityUnits: 16

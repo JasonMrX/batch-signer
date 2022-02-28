@@ -12,6 +12,7 @@ exports.handler = async (event, context) => {
             TableName: MessagesTableName,
             Item: {
                 CollectionId: collectionId,
+                MessageId: Date.now() + crypto.randomBytes(8).toString("hex"),
                 Message: crypto.randomBytes(256).toString("hex")
             }
         }).promise())
