@@ -55,6 +55,17 @@ Resources:
             TableName: !Ref MessagesTable 
         - DynamoDBCrudPolicy:
             TableName: !Ref KeysTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref LocksTable
+        - SQSPollerPolicy:
+            QueueName: !GetAtt BatchQueue.QueueName
+      Environment:
+        Variables:
+          MESSAGES_TABLE: !Ref MessagesTable
+          KEYS_TABLE: !Ref KeysTable
+          LOCKS_TABLE: !Ref LocksTable
+          BATCH_QUEUE: !Ref BatchQueue
+      Timeout: 300
 
   KeyGenFunction:
     Type: AWS::Serverless::Function    
@@ -95,7 +106,6 @@ Resources:
       CodeUri: functions/splitter/
       Handler: app.handler
       Runtime: nodejs14.x
-      ReservedConcurrentExecutions: 1 # important!
       Architectures:
         - x86_64
       Policies:
@@ -138,11 +148,11 @@ Resources:
         ReadCapacityUnits: 1
         WriteCapacityUnits: 1
 
-  ProgressTable:
+  LocksTable:
     Type: AWS::Serverless::SimpleTable
     Properties:
       PrimaryKey:
-        Name: Id
+        Name: LockId
         Type: String
       ProvisionedThroughput:
         ReadCapacityUnits: 5

@@ -19,11 +19,13 @@ exports.handler = async (event, context) => {
             Limit: batchSize,
             ExclusiveStartKey: exclusiveStartKey
         }).promise();
-        
+
         await sqs.sendMessage({
             QueueUrl: BatchQueueUrl,
             MessageBody: JSON.stringify({
-                message_ids: result.Items.map(item => item.MessageId)
+                messageIds: result.Items.map(item => item.MessageId),
+                collectionId: collectionId,
+                batchId: exclusiveStartKey ? exclusiveStartKey.MessageId : "firstBatch"
             })
         }).promise();
         exclusiveStartKey = result.LastEvaluatedKey;

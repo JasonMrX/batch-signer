@@ -1,30 +1,73 @@
 const crypto = require("crypto");
+const aws = require("aws-sdk");
+const { assert } = require("console");
+const sqs = new aws.SQS();
+const dynamo = new aws.DynamoDB.DocumentClient()
+const MessagesTableName = process.env.MESSAGES_TABLE
+const KeysTableName = process.env.KEYS_TABLE
+const BatchQueueUrl = process.env.BATCH_QUEUE
 
-function getRandomInt(max) {
-    return Math.floor(Math.random() * Math.floor(max)) + 1;
-}
-
-/**
- * Sample Lambda function which mocks the operation of buying a random number of shares for a stock.
- * For demonstration purposes, this Lambda function does not actually perform any  actual transactions. It simply returns a mocked result.
- * 
- * @param {Object} event - Input event to the Lambda function
- * @param {Object} context - Lambda Context runtime methods and attributes
- *
- * @returns {Object} object - Object containing details of the stock buying transaction
- * 
- */
 exports.handler = async (event, context) => {
-    // Get the price of the stock provided as input
-    stock_price = event["stock_price"]
-    var date = new Date();
-    // Mocked result of a stock buying transaction
-    let transaction_result = {
-        'id': crypto.randomBytes(16).toString("hex"), // Unique ID for the transaction
-        'price': stock_price.toString(), // Price of each share
-        'type': "buy", // Type of transaction(buy/ sell)
-        'qty': getRandomInt(10).toString(),  // Number of shares bought / sold(We are mocking this as a random integer between 1 and 10)
-        'timestamp': date.toISOString(),  // Timestamp of the when the transaction was completed
+    var pubKey = event["public_key"];
+    var keyResponse = await dynamo.get({
+        TableName: KeysTableName,
+        Key: {
+            PubKey: pubKey
+        }
+    }).promise();
+    var privKey = Buffer.from(keyResponse.Item.PrivKey, 'hex');
+
+    var batchResponse = await sqs.receiveMessage({
+        QueueUrl: BatchQueueUrl
+    }).promise();
+
+    if (!batchResponse.Messages?.length) {
+        return false
+        // TODO: consider send to DLQ when length > 1 which is not expected.
     }
-    return transaction_result
+    
+    var sqsMessage = batchResponse.Messages[0];
+    var body = JSON.parse(sqsMessage.Body);
+    var collectionId = body.collectionId;
+    await Promise.all(body.messageIds.map(async messageId => {
+        let messageResponse = await dynamo.get({
+            TableName: MessagesTableName,
+            Key: {
+                CollectionId: collectionId,
+                MessageId: messageId
+            }
+        }).promise();
+        
+        let message = messageResponse.Item.Message;
+        let messageBuffer = Buffer.from(message, 'hex');
+        let signature = crypto.sign('SHA384', messageBuffer, {
+            key: privKey,
+            format: 'der',
+            type: 'pkcs8'
+        });
+        
+        let verified = crypto.verify('SHA384', messageBuffer, {
+            key: Buffer.from(pubKey, 'hex'),
+            format: 'der',
+            type: 'spki'
+        }, signature);
+        assert(verified);
+
+        await dynamo.put({
+            TableName: MessagesTableName,
+            Item: {
+                CollectionId: collectionId,
+                MessageId: messageId,
+                Message: message,
+                Signature: signature.toString('hex'),
+                signingKey: pubKey
+            }
+        }).promise();
+    }));
+
+    await sqs.deleteMessage({
+        QueueUrl: BatchQueueUrl,
+        ReceiptHandle: sqsMessage.ReceiptHandle
+    }).promise();
+    return true;
 };
