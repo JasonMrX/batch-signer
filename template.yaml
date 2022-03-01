@@ -120,9 +120,7 @@ Resources:
           KeyType: HASH
         - AttributeName: MessageId
           KeyType: RANGE
-      ProvisionedThroughput:
-        ReadCapacityUnits: 16
-        WriteCapacityUnits: 16
+      BillingMode: PAY_PER_REQUEST
 
   KeysTable:
     Type: AWS::Serverless::SimpleTable
