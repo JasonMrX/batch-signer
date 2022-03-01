@@ -11,10 +11,10 @@ Resources:
     Properties:
       DefinitionUri: statemachine/orchestrator.asl.json
       DefinitionSubstitutions:
-        GetAllKeysFunctionArn: !GetAtt GetAllKeysFunction.Arn
+        SplitterFunctionArn: !GetAtt SplitterFunction.Arn
+        BatchSignerFunctionArn: !GetAtt BatchSignerFunction.Arn
+        KeysTableName: !Ref KeysTable
       Policies:         
-        - LambdaInvokePolicy:
-            FunctionName: !Ref GetAllKeysFunction 
         - LambdaInvokePolicy:
             FunctionName: !Ref BatchSignerFunction 
         - LambdaInvokePolicy:
@@ -25,22 +25,6 @@ Resources:
             TableName: !Ref MessagesTable 
         - DynamoDBCrudPolicy:
             TableName: !Ref KeysTable
-
-  GetAllKeysFunction:
-    Type: AWS::Serverless::Function    
-    Properties:
-      CodeUri: functions/get-all-keys/
-      Handler: app.handler
-      Runtime: nodejs14.x
-      Architectures:
-        - x86_64
-      Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref KeysTable
-      Environment:
-        Variables:
-          KEYS_TABLE: !Ref KeysTable
-      Timeout: 60
 
   BatchSignerFunction:
     Type: AWS::Serverless::Function     
@@ -98,7 +82,7 @@ Resources:
         Variables:
           MESSAGES_TABLE: !Ref MessagesTable
       Timeout: 900
-      MemorySize: 1280
+      MemorySize: 512
 
   SplitterFunction:
     Type: AWS::Serverless::Function    
@@ -117,6 +101,8 @@ Resources:
         Variables:
           MESSAGES_TABLE: !Ref MessagesTable
           BATCH_QUEUE: !Ref BatchQueue
+      Timeout: 600
+      MemorySize: 512
 
   BatchQueue:
     Type: AWS::SQS::Queue
@@ -145,8 +131,8 @@ Resources:
         Name: PubKey
         Type: String
       ProvisionedThroughput:
-        ReadCapacityUnits: 1
-        WriteCapacityUnits: 1
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
 
   LocksTable:
     Type: AWS::Serverless::SimpleTable
@@ -155,5 +141,5 @@ Resources:
         Name: LockId
         Type: String
       ProvisionedThroughput:
-        ReadCapacityUnits: 5
-        WriteCapacityUnits: 5
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1

@@ -1,42 +1,101 @@
 {
-    "Comment": "A description of my state machine",
-    "StartAt": "Lambda Invoke",
-    "States": {
-      "Lambda Invoke": {
-        "Type": "Task",
-        "Resource": "arn:aws:states:::lambda:invoke",
-        "OutputPath": "$.Payload",
-        "Parameters": {
-          "Payload.$": "$",
-          "FunctionName": "${GetAllKeysFunctionArn}"
-        },
-        "Retry": [
-          {
-            "ErrorEquals": [
-              "Lambda.ServiceException",
-              "Lambda.AWSLambdaException",
-              "Lambda.SdkClientException"
-            ],
-            "IntervalSeconds": 2,
-            "MaxAttempts": 6,
-            "BackoffRate": 2
-          }
-        ],
-        "Next": "Map"
+  "Comment": "A description of my state machine",
+  "StartAt": "Split Message Collection",
+  "States": {
+    "Split Message Collection": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "Payload.$": "$",
+        "FunctionName": "${SplitterFunctionArn}"
       },
-      "Map": {
-        "Type": "Map",
-        "End": true,
-        "Iterator": {
-          "StartAt": "Pass",
-          "States": {
-            "Pass": {
-              "Type": "Pass",
-              "End": true
-            }
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 6,
+          "BackoffRate": 2
+        }
+      ],
+      "Next": "Get All Keys",
+      "ResultPath": null
+    },
+    "Get All Keys": {
+      "Type": "Task",
+      "Parameters": {
+        "TableName": "${KeysTableName}",
+        "ProjectionExpression": "PubKey"
+      },
+      "Resource": "arn:aws:states:::aws-sdk:dynamodb:scan",
+      "Next": "For Each Key"
+    },
+    "For Each Key": {
+      "Type": "Map",
+      "End": true,
+      "Iterator": {
+        "StartAt": "Sign a Batch",
+        "States": {
+          "Sign a Batch": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::lambda:invoke",
+            "Parameters": {
+              "FunctionName": "${BatchSignerFunctionArn}",
+              "Payload": {
+                "public_key.$": "$.PubKey.S"
+              }
+            },
+            "Retry": [
+              {
+                "ErrorEquals": [
+                  "Lambda.ServiceException",
+                  "Lambda.AWSLambdaException",
+                  "Lambda.SdkClientException",
+                  "ProvisionedThroughputExceededException"
+                ],
+                "IntervalSeconds": 2,
+                "MaxAttempts": 6,
+                "BackoffRate": 2
+              }
+            ],
+            "Next": "More Batches?",
+            "ResultPath": "$.result",
+            "ResultSelector": {
+              "hasNext.$": "$.Payload"
+            },
+            "Catch": [
+              {
+                "ErrorEquals": [
+                  "States.ALL"
+                ],
+                "Next": "Sidelined"
+              }
+            ]
+          },
+          "Sidelined": {
+            "Type": "Succeed"
+          },
+          "More Batches?": {
+            "Type": "Choice",
+            "Choices": [
+              {
+                "Variable": "$.result.hasNext",
+                "BooleanEquals": true,
+                "Next": "Sign a Batch"
+              }
+            ],
+            "Default": "Completed"
+          },
+          "Completed": {
+            "Type": "Succeed"
           }
-        },
-        "ItemsPath": "$.Items"
-      }
+        }
+      },
+      "ItemsPath": "$.Items",
+      "MaxConcurrency": 40
     }
   }
+}
