@@ -20,9 +20,9 @@ aws lambda invoke --function-name [KeyGenFunctionName] --payload '{"keys_count":
 ```
 aws stepfunctions start-execution --state-machine-arn [OrchestratorStateMachineArn] --input '{"collection_id": [collection_id], "batch_size": 20}'
 ```
-#### Verify result:
+#### Verify result (after the Orchestrator state machine completed):
 ```
-aws lambda invoke --function-name [VerifierFunctionName] --payload '{"collection_id": 10000}' /dev/stdout
+aws lambda invoke --function-name [VerifierFunctionName] --payload '{"collection_id": [collection_id]}' /dev/stdout
 ```
 
 ## Known Limits
