@@ -104,6 +104,23 @@ Resources:
       Timeout: 600
       MemorySize: 512
 
+  VerifierFunction:
+    Type: AWS::Serverless::Function    
+    Properties:
+      CodeUri: functions/verifier/
+      Handler: app.handler
+      Runtime: nodejs14.x
+      Architectures:
+        - x86_64
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref MessagesTable 
+      Environment:
+        Variables:
+          MESSAGES_TABLE: !Ref MessagesTable
+      Timeout: 600
+      MemorySize: 512
+
   BatchQueue:
     Type: AWS::SQS::Queue
 
