@@ -29,29 +29,15 @@ exports.handler = async (event, context) => {
     var sqsMessage = batchResponse.Messages[0];
     var body = JSON.parse(sqsMessage.Body);
     var collectionId = body.collectionId;
-    await Promise.all(body.messageIds.map(async messageId => {
-        let messageResponse = await dynamo.get({
-            TableName: MessagesTableName,
-            Key: {
-                CollectionId: collectionId,
-                MessageId: messageId
-            }
-        }).promise();
-        
-        let message = messageResponse.Item.Message;
+    await Promise.all(body.messages.map(async item => {
+        let messageId = item.id;
+        let message = item.message;
         let messageBuffer = Buffer.from(message, 'hex');
         let signature = crypto.sign('SHA384', messageBuffer, {
             key: privKey,
             format: 'der',
             type: 'pkcs8'
         });
-        
-        let verified = crypto.verify('SHA384', messageBuffer, {
-            key: Buffer.from(pubKey, 'hex'),
-            format: 'der',
-            type: 'spki'
-        }, signature);
-        assert(verified);
 
         await dynamo.put({
             TableName: MessagesTableName,

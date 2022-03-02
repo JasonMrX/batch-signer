@@ -23,7 +23,12 @@ exports.handler = async (event, context) => {
         await sqs.sendMessage({
             QueueUrl: BatchQueueUrl,
             MessageBody: JSON.stringify({
-                messageIds: result.Items.map(item => item.MessageId),
+                messages: result.Items.map(item => {
+                    return {
+                        id: item.MessageId,
+                        message: item.Message
+                    };
+                }),
                 collectionId: collectionId,
                 batchId: exclusiveStartKey ? exclusiveStartKey.MessageId : "firstBatch"
             })
