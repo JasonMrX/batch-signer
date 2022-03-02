@@ -1,5 +1,30 @@
 # batch-signer
 
+## Usage
+
+#### Install and configure `aws` cli and `sam` cli on local
+
+#### Deploy stack and take notes on the resource names from the output:
+```
+sam deploy
+```
+#### Seed data and take note on the `collection_id` from the output:
+```
+aws lambda invoke --function-name [SeedDataFunctionName] --payload '{"messages_count": 10000}' /dev/stdout
+```
+#### Keygen:
+```
+aws lambda invoke --function-name [KeyGenFunctionName] --payload '{"keys_count": 40}' /dev/stdout
+```
+#### Start batch signing process:
+```
+aws stepfunctions start-execution --state-machine-arn [OrchestratorStateMachineArn] --input '{"collection_id": [collection_id], "batch_size": 20}'
+```
+#### Verify result:
+```
+aws lambda invoke --function-name [VerifierFunctionName] --payload '{"collection_id": 10000}' /dev/stdout
+```
+
 ## Known Limits
 - Step Functions Max State concurrency limit to 40 keys concurrently only.
 - Potential of SQS duplicate messages => double signing

@@ -158,3 +158,13 @@ Resources:
       ProvisionedThroughput:
         ReadCapacityUnits: 1
         WriteCapacityUnits: 1
+
+Outputs:
+  SeedDataFunctionName:
+    Value: !Ref SeedDataFunction
+  KeyGenFunctionName:
+    Value: !Ref KeyGenFunction 
+  VerifierFunctionName:
+    Value: !Ref VerifierFunction 
+  OrchestratorStateMachineName:
+    Value: !GetAtt OrchestratorStateMachine.Name
